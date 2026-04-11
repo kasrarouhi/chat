@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spiral Inductor Designer</title>
+    <!-- Favicon - using emoji as icon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌀</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js for plotting -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js Zoom Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <!-- Modular CSS -->
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/layout.css">
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/forms.css">
+    <link rel="stylesheet" href="/static/css/results.css">
+    <link rel="stylesheet" href="/static/css/sidebar.css">
+    <link rel="stylesheet" href="/static/css/modes.css">
+    <link rel="stylesheet" href="/static/css/tuning.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">🌀</div>
+                <h1>Passive EM Device Designer</h1>
+            </div>
+            <p class="subtitle">v0.3.3</p>
+        </header>
+
+        <div class="main-layout">
+            <!-- Left Column: Inputs & Results -->
+            <div class="left-column">
+                <!-- Stack-up Selection -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon secondary">🔧</div>
+                        <h2 class="card-title">Technology Stack-up</h2>
+                    </div>
+                    <div class="stackup-grid">
+                        <div class="stackup-option" data-stackup="N4">
+                            <span class="stackup-name">N4</span>
+                            <span class="stackup-detail">(n4prf12lm.draco)</span>
+                        </div>
+                        <div class="stackup-option" data-stackup="N7">
+                            <span class="stackup-name">N7</span>
+                            <span class="stackup-detail">(n7prfsec.carme)</span>
+                        </div>
+                        <div class="stackup-option active" data-stackup="N28">
+                            <span class="stackup-name">N28</span>
+                            <span class="stackup-detail">(n28hpcplus9lm.kalyke)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Design Mode Selection -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">🎯</div>
+                        <h2 class="card-title">Design Mode</h2>
+                    </div>
+                    <div class="mode-grid" style="grid-template-columns: repeat(3, 1fr);">
+                        <div class="mode-option active" data-mode="analysis">
+                            <span class="mode-icon">📊</span>
+                            <span class="mode-name">Analysis</span>
+                            <span class="mode-description">Predict performance from geometry</span>
+                        </div>
+                        <div class="mode-option" data-mode="synthesis">
+                            <span class="mode-icon">🔬</span>
+                            <span class="mode-name">Synthesis</span>
+                            <span class="mode-description">Generate geometry from specs</span>
+                        </div>
+                        <div class="mode-option" data-mode="design_space">
+                            <span class="mode-icon">🗺️</span>
+                            <span class="mode-name">Design Space</span>
+                            <span class="mode-description">Explore L vs Q landscape</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Design Parameters -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">⚙️</div>
+                        <h2 class="card-title">Design Parameters</h2>
+                    </div>
+
+                    <!-- Analysis Mode Parameters -->
+                    <div id="analysisParams">
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Width <span class="unit">(μm)</span></label>
+                            <input type="number" step="any" id="width" value="6">
+                        </div>
+                        <div class="input-group">
+                            <label>Spacing <span class="unit">(μm)</span></label>
+                            <input type="number" step="any" id="spacing" value="2">
+                        </div>
+                        <div class="input-group">
+                            <label>Turns</label>
+                            <input type="number" step="1" id="turns" value="3">
+                        </div>
+                        <div class="input-group">
+                            <label>Taper <span class="unit">(μm)</span></label>
+                            <input type="number" step="any" id="taper" value="0.2">
+                        </div>
+                        <div class="input-group full-width">
+                            <label>Size <span class="unit">(μm)</span></label>
+                            <input type="number" step="any" id="size" value="160">
+                        </div>
+                    </div>
+
+                    <!-- Layer Selection -->
+                    <div style="margin-top: 20px;">
+                        <label style="font-size: 0.85rem; font-weight: 500; color: var(--gray-600); margin-bottom: 10px; display: block;">
+                            Metal Layer (select one or more)
+                        </label>
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                            <div class="layer-options" style="flex: 1; margin: 0;">
+                            <!-- N28 Layers -->
+                            <div class="layer-option active n28-layer" data-layer="AP" data-values="74,0" data-stackup="N28" data-color="#6366f1" style="--layer-color: #6366f1;">
+                                <span class="layer-name">AP</span>
+                                <span class="layer-detail">(74/0)</span>
+                            </div>
+                            <div class="layer-option n28-layer" data-layer="M9" data-values="39,60" data-stackup="N28" data-color="#0ea5e9" style="--layer-color: #0ea5e9;">
+                                <span class="layer-name">M9</span>
+                                <span class="layer-detail">(39/60)</span>
+                            </div>
+                            <div class="layer-option n28-layer" data-layer="M8" data-values="38,60" data-stackup="N28" data-color="#f59e0b" style="--layer-color: #f59e0b;">
+                                <span class="layer-name">M8</span>
+                                <span class="layer-detail">(38/60)</span>
+                            </div>
+                            <div class="layer-option n28-layer" data-layer="M7" data-values="37,40" data-stackup="N28" data-color="#ef4444" style="--layer-color: #ef4444;">
+                                <span class="layer-name">M7</span>
+                                <span class="layer-detail">(37/40)</span>
+                            </div>
+                            <!-- N4 Layers -->
+                            <div class="layer-option n4-layer" data-layer="AP" data-values="74,0" data-stackup="N4" data-color="#6366f1" style="--layer-color: #6366f1; display: none;">
+                                <span class="layer-name">AP</span>
+                                <span class="layer-detail">(74/0)</span>
+                            </div>
+                            <div class="layer-option n4-layer" data-layer="M12" data-values="42,60" data-stackup="N4" data-color="#0ea5e9" style="--layer-color: #0ea5e9; display: none;">
+                                <span class="layer-name">M12</span>
+                                <span class="layer-detail">(42/60)</span>
+                            </div>
+                            <div class="layer-option n4-layer" data-layer="M11" data-values="41,40" data-stackup="N4" data-color="#f59e0b" style="--layer-color: #f59e0b; display: none;">
+                                <span class="layer-name">M11</span>
+                                <span class="layer-detail">(41/40)</span>
+                            </div>
+                            <div class="layer-option n4-layer" data-layer="M10" data-values="40,40" data-stackup="N4" data-color="#ef4444" style="--layer-color: #ef4444; display: none;">
+                                <span class="layer-name">M10</span>
+                                <span class="layer-detail">(40/40)</span>
+                            </div>
+                            <!-- N7 Layers -->
+                            <div class="layer-option n7-layer" data-layer="AP" data-values="74,0" data-stackup="N7" data-color="#6366f1" style="--layer-color: #6366f1; display: none;">
+                                <span class="layer-name">AP</span>
+                                <span class="layer-detail">(74/0)</span>
+                            </div>
+                            <div class="layer-option n7-layer" data-layer="M13" data-values="43,60" data-stackup="N7" data-color="#0ea5e9" style="--layer-color: #0ea5e9; display: none;">
+                                <span class="layer-name">M13</span>
+                                <span class="layer-detail">(43/60)</span>
+                            </div>
+                            <div class="layer-option n7-layer" data-layer="M12" data-values="42,40" data-stackup="N7" data-color="#f59e0b" style="--layer-color: #f59e0b; display: none;">
+                                <span class="layer-name">M12</span>
+                                <span class="layer-detail">(42/40)</span>
+                            </div>
+                            <div class="layer-option n7-layer" data-layer="M11" data-values="41,40" data-stackup="N7" data-color="#ef4444" style="--layer-color: #ef4444; display: none;">
+                                <span class="layer-name">M11</span>
+                                <span class="layer-detail">(41/40)</span>
+                            </div>
+                            </div>
+                            <!-- Guard Ring Toggle -->
+                            <div class="toggle-group" style="margin: 0; padding: 8px 12px; width: auto; flex-shrink: 0;">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="grPresence">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div>
+                                    <div class="toggle-label">Guard Ring</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GR Parameters -->
+                    <div class="gr-params disabled" id="grParams">
+                        <div class="input-group">
+                            <label>GR Width <span class="unit">(μm)</span></label>
+                            <input type="number" step="any" id="grWidth" value="10" disabled>
+                        </div>
+                        <div class="input-group">
+                            <label>GR Space <span class="unit">(μm)</span></label>
+                            <input type="number" step="any" id="grSpace" value="90" disabled>
+                        </div>
+                    </div>
+
+                    <!-- Frequency Range -->
+                    <div class="frequency-section">
+                        <label>📡 Frequency Range (GHz)</label>
+                        <div class="frequency-inputs">
+                            <input type="number" id="freqStart" value="1" min="1" max="49">
+                            <span class="separator">to</span>
+                            <input type="number" id="freqStop" value="30" min="2" max="50">
+                        </div>
+                    </div>
+                    </div>
+                    <!-- End Analysis Mode Parameters -->
+
+                    <!-- Synthesis Mode Parameters -->
+                    <div id="synthesisParams" style="display: none;">
+                        <div class="synthesis-section-header">📏 Geometry Constraints</div>
+
+                        <!-- Width and Spacing on same row -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                            <div class="synthesis-param-row" style="margin-bottom: 0;">
+                                <input type="checkbox" class="synthesis-checkbox" id="synWidthEnable" checked>
+                                <label class="synthesis-param-label">Width</label>
+                                <div class="synthesis-range">
+                                    <input type="number" id="synWidthMin" value="1" min="1" max="12" step="0.1">
+                                    <span class="separator">to</span>
+                                    <input type="number" id="synWidthMax" value="10" min="1" max="12" step="0.1">
+                                </div>
+                                <span class="synthesis-unit">μm</span>
+                            </div>
+
+                            <div class="synthesis-param-row" style="margin-bottom: 0;">
+                                <input type="checkbox" class="synthesis-checkbox" id="synSpacingEnable" checked>
+                                <label class="synthesis-param-label">Spacing</label>
+                                <div class="synthesis-range">
+                                    <input type="number" id="synSpacingMin" value="1" min="1" max="15" step="0.1">
+                                    <span class="separator">to</span>
+                                    <input type="number" id="synSpacingMax" value="10" min="1" max="15" step="0.1">
+                                </div>
+                                <span class="synthesis-unit">μm</span>
+                            </div>
+                        </div>
+
+                        <!-- Turns and Taper on same row -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                            <div class="synthesis-param-row" style="margin-bottom: 0;">
+                                <input type="checkbox" class="synthesis-checkbox" id="synTurnsEnable" checked>
+                                <label class="synthesis-param-label">Turns</label>
+                                <div class="synthesis-range">
+                                    <input type="number" id="synTurnsMin" value="1" min="1" max="15" step="1">
+                                    <span class="separator">to</span>
+                                    <input type="number" id="synTurnsMax" value="13" min="1" max="15" step="1">
+                                </div>
+                                <span class="synthesis-unit"></span>
+                            </div>
+
+                            <div class="synthesis-param-row" style="margin-bottom: 0;">
+                                <input type="checkbox" class="synthesis-checkbox" id="synTaperEnable" checked>
+                                <label class="synthesis-param-label">Taper</label>
+                                <div class="synthesis-range">
+                                    <input type="number" id="synTaperMin" value="0" min="0" max="5" step="0.1">
+                                    <span class="separator">to</span>
+                                    <input type="number" id="synTaperMax" value="1.5" min="0" max="5" step="0.1">
+                                </div>
+                                <span class="synthesis-unit">μm</span>
+                            </div>
+                        </div>
+
+                        <!-- Size on its own row -->
+                        <div class="synthesis-param-row">
+                            <input type="checkbox" class="synthesis-checkbox" id="synSizeEnable" checked>
+                            <label class="synthesis-param-label">Size</label>
+                            <div class="synthesis-range">
+                                <input type="number" id="synSizeMin" value="80" min="40" max="500" step="10">
+                                <span class="separator">to</span>
+                                <input type="number" id="synSizeMax" value="400" min="40" max="500" step="10">
+                            </div>
+                            <span class="synthesis-unit">μm</span>
+                        </div>
+
+                        <!-- Layer Selection for Synthesis -->
+                        <div style="margin-top: 20px;">
+                            <label style="font-size: 0.85rem; font-weight: 500; color: var(--gray-600); margin-bottom: 10px; display: block;">
+                                Metal Layer (select one or more)
+                            </label>
+                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                                <div class="layer-options" id="synthesisLayerOptions" style="flex: 1; margin: 0;">
+                                    <!-- Will be populated dynamically -->
+                                </div>
+                                <!-- Guard Ring Toggle for Synthesis -->
+                                <div class="toggle-group" style="margin: 0; padding: 8px 12px; width: auto; flex-shrink: 0;">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="synGrPresence">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                    <div>
+                                        <div class="toggle-label">Guard Ring</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="synGrParams" style="margin-top: 12px;">
+                            <!-- GR Width and GR Space on same row -->
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div class="synthesis-param-row" style="margin-bottom: 0;">
+                                    <input type="checkbox" class="synthesis-checkbox" id="synGrWidthEnable" disabled>
+                                    <label class="synthesis-param-label">GR Width</label>
+                                    <div class="synthesis-range">
+                                        <input type="number" id="synGrWidthMin" value="5" min="5" max="25" step="1" disabled>
+                                        <span class="separator">to</span>
+                                        <input type="number" id="synGrWidthMax" value="10" min="5" max="25" step="1" disabled>
+                                    </div>
+                                    <span class="synthesis-unit">μm</span>
+                                </div>
+
+                                <div class="synthesis-param-row" style="margin-bottom: 0;">
+                                    <input type="checkbox" class="synthesis-checkbox" id="synGrSpaceEnable" disabled>
+                                    <label class="synthesis-param-label">GR Space</label>
+                                    <div class="synthesis-range">
+                                        <input type="number" id="synGrSpaceMin" value="30" min="10" max="100" step="5" disabled>
+                                        <span class="separator">to</span>
+                                        <input type="number" id="synGrSpaceMax" value="90" min="10" max="100" step="5" disabled>
+                                    </div>
+                                    <span class="synthesis-unit">μm</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="synthesis-section-header">🎯 Target Specifications</div>
+
+                        <!-- Frequency Mode Selection -->
+                        <div style="margin-bottom: 16px;">
+                            <label style="font-size: 0.85rem; font-weight: 500; color: var(--gray-600); margin-bottom: 8px; display: block;">
+                                Frequency Mode
+                            </label>
+                            <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: not-allowed; opacity: 0.5;">
+                                    <input type="radio" name="freqMode" value="range" id="freqModeRange" style="cursor: not-allowed;" disabled>
+                                    <span style="font-size: 0.85rem; color: var(--gray-400);">Frequency Range (coming soon)</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="radio" name="freqMode" value="single" id="freqModeSingle" checked style="cursor: pointer;">
+                                    <span style="font-size: 0.85rem; color: var(--gray-700);">Single Frequency</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Frequency Range Inputs -->
+                        <div class="synthesis-param-row" id="synFreqRangeRow" style="display: none;">
+                            <input type="checkbox" class="synthesis-checkbox" id="synFreqEnable" checked>
+                            <label class="synthesis-param-label">Frequency</label>
+                            <div class="synthesis-range">
+                                <input type="number" id="synFreqMin" value="5" min="1" max="30" step="0.5">
+                                <span class="separator">to</span>
+                                <input type="number" id="synFreqMax" value="10" min="1" max="30" step="0.5">
+                            </div>
+                            <span class="synthesis-unit">GHz</span>
+                        </div>
+
+                        <!-- Frequency and Inductance on same row -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                            <!-- Single Frequency Input -->
+                            <div class="synthesis-param-row" id="synFreqSingleRow" style="margin-bottom: 0;">
+                                <label class="synthesis-param-label" style="padding-left: 0;">Frequency</label>
+                                <div class="synthesis-range">
+                                    <input type="number" id="synFreqSingle" value="10" min="1" max="30" step="0.1" style="flex: 1;">
+                                </div>
+                                <span class="synthesis-unit">GHz</span>
+                            </div>
+
+                            <div class="synthesis-param-row" style="margin-bottom: 0;">
+                                <input type="checkbox" class="synthesis-checkbox" id="synInductanceEnable" checked>
+                                <label class="synthesis-param-label">Inductance</label>
+                                <div class="synthesis-range">
+                                    <input type="number" id="synInductanceMin" value="1" min="0.1" max="10" step="0.1">
+                                    <span class="separator">to</span>
+                                    <input type="number" id="synInductanceMax" value="5" min="0.1" max="10" step="0.1">
+                                </div>
+                                <span class="synthesis-unit">nH</span>
+                            </div>
+                        </div>
+
+                        <!-- Resistance and Quality Factor on same row -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                            <div class="synthesis-param-row" style="margin-bottom: 0;">
+                                <input type="checkbox" class="synthesis-checkbox" id="synResistanceEnable">
+                                <label class="synthesis-param-label">Resistance</label>
+                                <div class="synthesis-range">
+                                    <input type="number" id="synResistanceMin" value="1" min="0.1" max="200" step="0.5">
+                                    <span class="separator">to</span>
+                                    <input type="number" id="synResistanceMax" value="50" min="0.1" max="200" step="0.5">
+                                </div>
+                                <span class="synthesis-unit">Ω</span>
+                            </div>
+
+                            <div class="synthesis-param-row" style="margin-bottom: 0;">
+                                <input type="checkbox" class="synthesis-checkbox" id="synQualityEnable">
+                                <label class="synthesis-param-label">Quality Factor</label>
+                                <div class="synthesis-range">
+                                    <input type="number" id="synQualityMin" value="5" min="1" max="50" step="1">
+                                    <span class="separator">to</span>
+                                    <input type="number" id="synQualityMax" value="15" min="1" max="50" step="1">
+                                </div>
+                                <span class="synthesis-unit"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- End Synthesis Mode Parameters -->
+
+                    <!-- Design Space Mode Parameters -->
+                    <div id="designSpaceParams" style="display: none;">
+                        <div class="synthesis-section-header">📏 Geometry Constraints</div>
+
+                        <!-- Width and Spacing on same row -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                            <div class="synthesis-param-row" style="margin-bottom: 0;">
+                                <input type="checkbox" class="synthesis-checkbox" id="dsWidthEnable" checked>
+                                <label class="synthesis-param-label">Width</label>
+                                <div class="synthesis-range">
+                                    <input type="number" id="dsWidthMin" value="1" min="1" max="12" step="0.1">
+                                    <span class="separator">to</span>
+                                    <input type="number" id="dsWidthMax" value="10" min="1" max="12" step="0.1">
+                                </div>
+                                <span class="synthesis-unit">μm</span>
+                                <input type="number" id="dsWidthSamples" value="7" min="2" max="20" step="1" class="samples-input" title="Number of samples">
+                                <span class="samples-unit">samples</span>
+                            </div>
+
+                            <div class="synthesis-param-row" style="margin-bottom: 0;">
+                                <input type="checkbox" class="synthesis-checkbox" id="dsSpacingEnable" checked>
+                                <label class="synthesis-param-label">Spacing</label>
+                                <div class="synthesis-range">
+                                    <input type="number" id="dsSpacingMin" value="1" min="1" max="15" step="0.1">
+                                    <span class="separator">to</span>
+                                    <input type="number" id="dsSpacingMax" value="10" min="1" max="15" step="0.1">
+                                </div>
+                                <span class="synthesis-unit">μm</span>
+                                <input type="number" id="dsSpacingSamples" value="7" min="2" max="20" step="1" class="samples-input" title="Number of samples">
+                                <span class="samples-unit">samples</span>
+                            </div>
+                        </div>
+
+                        <!-- Turns and Taper on same row -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                            <div class="synthesis-param-row" style="margin-bottom: 0;">
+                                <input type="checkbox" class="synthesis-checkbox" id="dsTurnsEnable" checked>
+                                <label class="synthesis-param-label">Turns</label>
+                                <div class="synthesis-range">
+                                    <input type="number" id="dsTurnsMin" value="1" min="1" max="15" step="1">
+                                    <span class="separator">to</span>
+                                    <input type="number" id="dsTurnsMax" value="13" min="1" max="15" step="1">
+                                </div>
+                                <span class="synthesis-unit"></span>
+                                <input type="number" id="dsTurnsStep" value="2" min="1" max="10" step="1" class="samples-input" title="Step size">
+                                <span class="samples-unit">step</span>
+                            </div>
+
+                            <div class="synthesis-param-row" style="margin-bottom: 0;">
+                                <input type="checkbox" class="synthesis-checkbox" id="dsTaperEnable" checked>
+                                <label class="synthesis-param-label">Taper</label>
+                                <div class="synthesis-range">
+                                    <input type="number" id="dsTaperMin" value="0" min="0" max="5" step="0.1">
+                                    <span class="separator">to</span>
+                                    <input type="number" id="dsTaperMax" value="1.5" min="0" max="5" step="0.1">
+                                </div>
+                                <span class="synthesis-unit">μm</span>
+                                <input type="number" id="dsTaperSamples" value="7" min="2" max="20" step="1" class="samples-input" title="Number of samples">
+                                <span class="samples-unit">samples</span>
+                            </div>
+                        </div>
+
+                        <!-- Size on its own row -->
+                        <div class="synthesis-param-row">
+                            <input type="checkbox" class="synthesis-checkbox" id="dsSizeEnable" checked>
+                            <label class="synthesis-param-label">Size</label>
+                            <div class="synthesis-range">
+                                <input type="number" id="dsSizeMin" value="80" min="40" max="500" step="10">
+                                <span class="separator">to</span>
+                                <input type="number" id="dsSizeMax" value="400" min="40" max="500" step="10">
+                            </div>
+                            <span class="synthesis-unit">μm</span>
+                            <input type="number" id="dsSizeSamples" value="7" min="2" max="20" step="1" class="samples-input" title="Number of samples">
+                            <span class="samples-unit">samples</span>
+                        </div>
+
+                        <!-- Layer Selection for Design Space -->
+                        <div style="margin-top: 20px;">
+                            <label style="font-size: 0.85rem; font-weight: 500; color: var(--gray-600); margin-bottom: 10px; display: block;">
+                                Metal Layers (select one or more)
+                            </label>
+                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                                <div class="layer-options" id="designSpaceLayerOptions" style="flex: 1; margin: 0;">
+                                    <!-- Will be populated dynamically -->
+                                </div>
+                                <!-- Guard Ring Toggle for Design Space -->
+                                <div class="toggle-group" style="margin: 0; padding: 8px 12px; width: auto; flex-shrink: 0;">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="dsGrPresence">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                    <div>
+                                        <div class="toggle-label">Guard Ring</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="dsGrParams" style="margin-top: 12px;">
+                            <!-- GR Width and GR Space on same row -->
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div class="synthesis-param-row" style="margin-bottom: 0;">
+                                    <input type="checkbox" class="synthesis-checkbox" id="dsGrWidthEnable" disabled>
+                                    <label class="synthesis-param-label">GR Width</label>
+                                    <div class="synthesis-range">
+                                        <input type="number" id="dsGrWidthMin" value="5" min="5" max="25" step="1" disabled>
+                                        <span class="separator">to</span>
+                                        <input type="number" id="dsGrWidthMax" value="20" min="5" max="25" step="1" disabled>
+                                    </div>
+                                    <span class="synthesis-unit">μm</span>
+                                    <input type="number" id="dsGrWidthSamples" value="5" min="2" max="20" step="1" class="samples-input" title="Number of samples" disabled>
+                                    <span class="samples-unit">samples</span>
+                                </div>
+
+                                <div class="synthesis-param-row" style="margin-bottom: 0;">
+                                    <input type="checkbox" class="synthesis-checkbox" id="dsGrSpaceEnable" disabled>
+                                    <label class="synthesis-param-label">GR Space</label>
+                                    <div class="synthesis-range">
+                                        <input type="number" id="dsGrSpaceMin" value="30" min="10" max="100" step="5" disabled>
+                                        <span class="separator">to</span>
+                                        <input type="number" id="dsGrSpaceMax" value="90" min="10" max="100" step="5" disabled>
+                                    </div>
+                                    <span class="synthesis-unit">μm</span>
+                                    <input type="number" id="dsGrSpaceSamples" value="5" min="2" max="20" step="1" class="samples-input" title="Number of samples" disabled>
+                                    <span class="samples-unit">samples</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="synthesis-section-header">🎯 Target Frequency</div>
+
+                        <!-- Single Frequency Input -->
+                        <div class="synthesis-param-row">
+                            <label class="synthesis-param-label" style="padding-left: 0;">Frequency</label>
+                            <div class="synthesis-range">
+                                <input type="number" id="dsFrequency" value="10" min="1" max="30" step="0.1" style="flex: 1;">
+                            </div>
+                            <span class="synthesis-unit">GHz</span>
+                        </div>
+                    </div>
+                    <!-- End Design Space Mode Parameters -->
+
+                    <!-- Synthesis Options -->
+                    <div id="synthesisMethodSection" style="display: none; margin-top: 20px;">
+                        <!-- All options in single row -->
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                            <!-- Show Close Solutions (Solution 0) - Only for single frequency -->
+                            <div class="toggle-group" id="showCloseSolutionsToggle" style="margin: 0; padding: 12px; display: none;">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="showCloseSolutionsEnable" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div>
+                                    <div class="toggle-label" style="font-size: 0.85rem;">Show Close Solutions</div>
+                                    <div class="toggle-description" style="font-size: 0.7rem;">Solution 0 (±10%)</div>
+                                </div>
+                            </div>
+
+                            <!-- Auto Stop -->
+                            <div class="toggle-group" id="autoStopToggle" style="margin: 0; padding: 12px; display: none;">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="autoStopEnable">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div>
+                                    <div class="toggle-label" style="font-size: 0.85rem;">Auto Stop</div>
+                                    <div class="toggle-description" style="font-size: 0.7rem;">Stop after enough iterations</div>
+                                </div>
+                            </div>
+
+                            <!-- Optimization Criterion -->
+                            <div class="toggle-group" id="optimizationCriterionToggle" style="margin: 0; padding: 12px; display: none;">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="optimizationCriterionEnable" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div>
+                                    <div class="toggle-label" id="optimizationCriterionLabel" style="font-size: 0.85rem;">Best Quality Factor</div>
+                                    <div class="toggle-description" style="font-size: 0.7rem;">Best Q / Area</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="button-row">
+                        <button class="btn-primary" onclick="runPrediction()" id="predictBtn">
+                            <span>🔮</span> Predict
+                        </button>
+                        <button class="btn-danger" onclick="stopSynthesis()" id="stopBtn" style="display: none;">
+                            <span>✖</span> Stop
+                        </button>
+                        <button class="btn-secondary" onclick="clearInputs()" id="resetBtn">
+                            <span>↺</span> Reset
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Final Design Parameters -->
+                <div class="geometry-card hidden" id="finalGeometryCard">
+                    <div class="geometry-header">
+                        <div class="geometry-icon">✓</div>
+                        <h3 class="geometry-title">Final Design Parameters</h3>
+                    </div>
+                    <div class="geometry-grid">
+                        <div class="geometry-item">
+                            <div class="geometry-label">Width</div>
+                            <div class="geometry-value">
+                                <span id="finalWidth">6.0</span>
+                                <span class="geometry-unit">μm</span>
+                            </div>
+                        </div>
+                        <div class="geometry-item">
+                            <div class="geometry-label">Spacing</div>
+                            <div class="geometry-value">
+                                <span id="finalSpacing">2.0</span>
+                                <span class="geometry-unit">μm</span>
+                            </div>
+                        </div>
+                        <div class="geometry-item">
+                            <div class="geometry-label">Turns</div>
+                            <div class="geometry-value">
+                                <span id="finalTurns">3</span>
+                            </div>
+                        </div>
+                        <div class="geometry-item">
+                            <div class="geometry-label">Taper</div>
+                            <div class="geometry-value">
+                                <span id="finalTaper">0.2</span>
+                                <span class="geometry-unit">μm</span>
+                            </div>
+                        </div>
+                        <div class="geometry-item">
+                            <div class="geometry-label">Size</div>
+                            <div class="geometry-value">
+                                <span id="finalSize">160.0</span>
+                                <span class="geometry-unit">μm</span>
+                            </div>
+                        </div>
+                        <div class="geometry-item">
+                            <div class="geometry-label">Metal Layer</div>
+                            <div class="geometry-value">
+                                <span id="finalLayer">AP (74/0)</span>
+                            </div>
+                        </div>
+                        <div class="geometry-item" id="finalGrWidthItem" style="display: none;">
+                            <div class="geometry-label">GR Width</div>
+                            <div class="geometry-value">
+                                <span id="finalGrWidth">5.0</span>
+                                <span class="geometry-unit">μm</span>
+                            </div>
+                        </div>
+                        <div class="geometry-item" id="finalGrSpaceItem" style="display: none;">
+                            <div class="geometry-label">GR Space</div>
+                            <div class="geometry-value">
+                                <span id="finalGrSpace">30.0</span>
+                                <span class="geometry-unit">μm</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div class="results-section">
+                <div class="error-box hidden" id="errorBox">
+                    <strong>Error:</strong> <span id="errorMsg"></span>
+                </div>
+
+                <!-- Performance Metrics Card (Single Frequency Only) -->
+                <div class="performance-card hidden" id="performanceCard">
+                    <div class="performance-header">
+                        <div class="performance-icon">📊</div>
+                        <h3 class="performance-title">Performance @ <span id="performanceFreq">8</span> GHz</h3>
+                    </div>
+                    <div class="performance-boxes">
+                        <div class="performance-box performance-box-l">
+                            <div class="performance-label">Inductance</div>
+                            <div class="performance-value">
+                                <span id="performanceL">-</span>
+                                <span class="performance-unit">nH</span>
+                            </div>
+                        </div>
+                        <div class="performance-box performance-box-r">
+                            <div class="performance-label">Resistance</div>
+                            <div class="performance-value">
+                                <span id="performanceR">-</span>
+                                <span class="performance-unit">Ω</span>
+                            </div>
+                        </div>
+                        <div class="performance-box performance-box-q">
+                            <div class="performance-label">Quality Factor</div>
+                            <div class="performance-value">
+                                <span id="performanceQ">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="plot-card hidden" id="plotL">
+                    <div class="plot-title">
+                        <span class="indicator l"></span>
+                        Inductance (nH) vs Frequency
+                    </div>
+                    <!-- Design Space Layout (plot + detail panel) -->
+                    <div class="design-space-layout" id="designSpaceLayout" style="display: none;">
+                        <div class="design-space-chart-wrapper">
+                            <div class="chart-container">
+                                <canvas id="chartL"></canvas>
+                            </div>
+                        </div>
+                        <div class="design-space-detail-panel hidden" id="designSpaceDetailPanel">
+                            <div class="detail-panel-header">
+                                <span>📊 Selected Point</span>
+                                <button class="btn-clear-selection" id="clearSelectionBtn" onclick="clearDesignSpaceSelection()" title="Clear selection">×</button>
+                            </div>
+                            <div class="detail-panel-body">
+                                <div class="detail-section">
+                                    <div class="detail-section-title">Geometry</div>
+                                    <div class="detail-param">
+                                        <span class="detail-label">Width:</span>
+                                        <span class="detail-value" id="dsDetailWidth">-</span>
+                                    </div>
+                                    <div class="detail-param">
+                                        <span class="detail-label">Spacing:</span>
+                                        <span class="detail-value" id="dsDetailSpacing">-</span>
+                                    </div>
+                                    <div class="detail-param">
+                                        <span class="detail-label">Turns:</span>
+                                        <span class="detail-value" id="dsDetailTurns">-</span>
+                                    </div>
+                                    <div class="detail-param">
+                                        <span class="detail-label">Taper:</span>
+                                        <span class="detail-value" id="dsDetailTaper">-</span>
+                                    </div>
+                                    <div class="detail-param">
+                                        <span class="detail-label">Size:</span>
+                                        <span class="detail-value" id="dsDetailSize">-</span>
+                                    </div>
+                                    <div class="detail-param">
+                                        <span class="detail-label">Layer:</span>
+                                        <span class="detail-value" id="dsDetailLayer">-</span>
+                                    </div>
+                                </div>
+                                <div class="detail-section">
+                                    <div class="detail-section-title">Guard Ring</div>
+                                    <div class="detail-param">
+                                        <span class="detail-label">Enabled:</span>
+                                        <span class="detail-value" id="dsDetailGrEnabled">-</span>
+                                    </div>
+                                    <div class="detail-param" id="dsDetailGrWidthRow" style="display: none;">
+                                        <span class="detail-label">GR Width:</span>
+                                        <span class="detail-value" id="dsDetailGrWidth">-</span>
+                                    </div>
+                                    <div class="detail-param" id="dsDetailGrSpaceRow" style="display: none;">
+                                        <span class="detail-label">GR Space:</span>
+                                        <span class="detail-value" id="dsDetailGrSpace">-</span>
+                                    </div>
+                                </div>
+                                <div class="detail-section">
+                                    <div class="detail-section-title">Performance</div>
+                                    <div class="detail-param">
+                                        <span class="detail-label">Inductance:</span>
+                                        <span class="detail-value" id="dsDetailL">-</span>
+                                    </div>
+                                    <div class="detail-param">
+                                        <span class="detail-label">Resistance:</span>
+                                        <span class="detail-value" id="dsDetailR">-</span>
+                                    </div>
+                                    <div class="detail-param">
+                                        <span class="detail-label">Quality Factor:</span>
+                                        <span class="detail-value" id="dsDetailQ">-</span>
+                                    </div>
+                                </div>
+                                <!-- Synthesize Now Button -->
+                                <button class="btn-synthesize-now" id="synthesizeNowBtn" onclick="synthesizeFromSelectedPoint()">
+                                    Synthesis!
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Normal chart container (for Analysis/Synthesis modes) -->
+                    <div class="chart-container" id="normalChartContainer">
+                        <canvas id="chartLNormal"></canvas>
+                    </div>
+                </div>
+
+                <div class="plot-card hidden" id="plotR">
+                    <div class="plot-title">
+                        <span class="indicator r"></span>
+                        Resistance (Ω) vs Frequency
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartR"></canvas>
+                    </div>
+                </div>
+
+                <div class="plot-card hidden" id="plotQ">
+                    <div class="plot-title">
+                        <span class="indicator q"></span>
+                        Quality Factor (Q) vs Frequency
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartQ"></canvas>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="data-table-card hidden" id="dataTableCard">
+                    <div class="table-header">
+                        <div class="table-title">
+                            <span class="table-title-icon">📋</span>
+                            Frequency Response Data
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Frequency <span class="unit-badge">GHz</span></th>
+                                    <th>Inductance (L) <span class="unit-badge">nH</span></th>
+                                    <th>Resistance (R) <span class="unit-badge">Ω</span></th>
+                                    <th>Quality Factor (Q)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dataTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Images -->
+            <div class="right-column">
+                <div class="sidebar-images">
+                    <div class="image-card">
+                        <!-- View Tabs -->
+                        <div class="view-tabs">
+                            <button class="view-tab active" data-view="2d">2D Layout</button>
+                            <button class="view-tab" data-view="3d">3D View</button>
+                        </div>
+
+                        <!-- 2D Canvas -->
+                        <div class="image-wrapper" id="canvas2dWrapper">
+                            <canvas id="spiralCanvas" width="500" height="500" style="width: 100%; height: auto; border-radius: 10px; background: #f9fafb;"></canvas>
+                        </div>
+
+                        <!-- 3D Canvas -->
+                        <div class="image-wrapper image-wrapper-3d" id="canvas3dWrapper" style="display: none; position: relative; padding: 0; background: transparent;">
+                            <canvas id="spiralCanvas3d" style="width: 100%; height: 500px; border-radius: 10px; background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); display: block;"></canvas>
+                            <div id="three-error-msg" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-align: center; padding: 20px; background: rgba(0,0,0,0.7); border-radius: 12px; z-index: 100;">
+                                <div style="font-size: 1.2rem; margin-bottom: 8px;">⚠️ 3D View Unavailable</div>
+                                <div style="font-size: 0.9rem; opacity: 0.8;">Three.js library failed to load</div>
+                            </div>
+                            <!-- Reset View Button -->
+                            <button class="btn-3d-reset" onclick="reset3DView()" title="Reset camera to default view">
+                                <span>↺</span>
+                            </button>
+                            <div class="view-3d-controls">
+                                <span class="control-hint">🖱️ Drag to rotate • Scroll to zoom • Right-click to pan</span>
+                            </div>
+                        </div>
+
+                        <div class="image-caption" id="viewCaption">EM device layout (2D)</div>
+
+                        <!-- Export Buttons -->
+                        <div class="export-buttons" style="display: flex; gap: 10px; margin-top: 12px;">
+                            <button class="btn-export btn-export-gds" onclick="exportLayout('gds')" title="Export as GDSII format">
+                                <span>💾</span> Export GDS
+                            </button>
+                            <button class="btn-export btn-export-oas" onclick="exportLayout('oas')" title="Export as OASIS format">
+                                <span>💾</span> Export OAS
+                            </button>
+                        </div>
+
+                        <!-- Export Help Text -->
+                        <div class="export-help" style="margin-top: 8px; padding: 8px 12px; background: rgba(99, 102, 241, 0.05); border-radius: 8px; border: 1px solid rgba(99, 102, 241, 0.1);">
+                            <div style="font-size: 0.75rem; color: var(--gray-600); line-height: 1.4;">
+                                <span style="font-weight: 600;">💡 Tip:</span> Files download to your browser's default folder.
+                                <a href="#" onclick="showSaveLocationHelp(); return false;" style="color: var(--primary); text-decoration: underline; cursor: pointer;">Click here</a> to learn how to choose save location.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="image-card" id="stackupCard">
+                        <div class="stackup-info-wrapper" id="stackupInfo" style="display: none;">
+                            <div class="stackup-info-header">Stack-up Properties</div>
+                            <div id="stackupLayers"></div>
+                        </div>
+                        <div id="stackupImageWrapper" class="image-wrapper" style="display: none;">
+                            <!-- Placeholder for stackups without data - dynamically populated -->
+                        </div>
+                        <div class="image-caption" id="stackupCaption">Stack-up</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            &mdash; Passive EM Design &mdash;
+        </footer>
+    </div>
+
+    <!-- Manual Tuning Modal -->
+    <div id="manualTuningModal" class="tuning-modal" style="display: none;">
+        <div class="tuning-modal-overlay"></div>
+        <div class="tuning-modal-content">
+            <!-- Modal Header -->
+            <div class="tuning-modal-header">
+                <h2><span>🎛️</span> Manual Tuning</h2>
+                <button class="tuning-close-btn" onclick="closeManualTuning()">×</button>
+            </div>
+
+            <!-- Two Column Layout -->
+            <div class="tuning-modal-body">
+                <!-- Left Column: Parameter Sliders -->
+                <div class="tuning-left-column">
+                    <h3 class="tuning-section-title">Adjust Parameters</h3>
+
+                    <!-- Width Slider -->
+                    <div class="tuning-param-group">
+                        <label class="tuning-param-label">Width <span class="tuning-param-value" id="tuningWidthValue">6.0</span> μm</label>
+                        <input type="range" class="tuning-slider" id="tuningWidth" step="0.01">
+                    </div>
+
+                    <!-- Spacing Slider -->
+                    <div class="tuning-param-group">
+                        <label class="tuning-param-label">Spacing <span class="tuning-param-value" id="tuningSpacingValue">2.0</span> μm</label>
+                        <input type="range" class="tuning-slider" id="tuningSpacing" step="0.01">
+                    </div>
+
+                    <!-- Turns Slider (Discrete) -->
+                    <div class="tuning-param-group">
+                        <label class="tuning-param-label">Turns <span class="tuning-param-value" id="tuningTurnsValue">3</span></label>
+                        <input type="range" class="tuning-slider" id="tuningTurns" step="1">
+                    </div>
+
+                    <!-- Taper Slider -->
+                    <div class="tuning-param-group">
+                        <label class="tuning-param-label">Taper <span class="tuning-param-value" id="tuningTaperValue">0.2</span> μm</label>
+                        <input type="range" class="tuning-slider" id="tuningTaper" step="0.01">
+                    </div>
+
+                    <!-- Size Slider -->
+                    <div class="tuning-param-group">
+                        <label class="tuning-param-label">Size <span class="tuning-param-value" id="tuningSizeValue">160</span> μm</label>
+                        <input type="range" class="tuning-slider" id="tuningSize" step="1">
+                    </div>
+
+                    <!-- Layer Selection -->
+                    <div class="tuning-param-group">
+                        <label class="tuning-param-label">Metal Layer</label>
+                        <div class="tuning-layer-options" id="tuningLayerOptions">
+                            <!-- Will be populated dynamically based on stackup -->
+                        </div>
+                    </div>
+
+                    <!-- Guard Ring Toggle -->
+                    <div class="tuning-param-group">
+                        <label class="tuning-param-label">Guard Ring</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="tuningGrPresence">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- GR Width Slider -->
+                    <div class="tuning-param-group tuning-gr-param" id="tuningGrWidthGroup">
+                        <label class="tuning-param-label">GR Width <span class="tuning-param-value" id="tuningGrWidthValue">5.0</span> μm</label>
+                        <input type="range" class="tuning-slider" id="tuningGrWidth" step="0.1" disabled>
+                    </div>
+
+                    <!-- GR Space Slider -->
+                    <div class="tuning-param-group tuning-gr-param" id="tuningGrSpaceGroup">
+                        <label class="tuning-param-label">GR Space <span class="tuning-param-value" id="tuningGrSpaceValue">30.0</span> μm</label>
+                        <input type="range" class="tuning-slider" id="tuningGrSpace" step="1" disabled>
+                    </div>
+                </div>
+
+                <!-- Right Column: Live Plots -->
+                <div class="tuning-right-column">
+                    <h3 class="tuning-section-title">Real-Time Performance</h3>
+
+                    <!-- Value Display Boxes -->
+                    <div class="tuning-value-boxes">
+                        <div class="tuning-value-box tuning-value-L">
+                            <div class="tuning-value-label" id="tuningValueLabelL">Inductance @ 5 GHz</div>
+                            <div class="tuning-value-number" id="tuningValueL">-</div>
+                        </div>
+                        <div class="tuning-value-box tuning-value-R">
+                            <div class="tuning-value-label" id="tuningValueLabelR">Resistance @ 5 GHz</div>
+                            <div class="tuning-value-number" id="tuningValueR">-</div>
+                        </div>
+                        <div class="tuning-value-box tuning-value-Q">
+                            <div class="tuning-value-label" id="tuningValueLabelQ">Quality Factor @ 5 GHz</div>
+                            <div class="tuning-value-number" id="tuningValueQ">-</div>
+                        </div>
+                    </div>
+
+                    <!-- 2x2 Plot Grid -->
+                    <div class="tuning-plots-grid">
+                        <!-- Top-left: Inductance -->
+                        <div class="tuning-plot-card">
+                            <div class="tuning-plot-title">Inductance (nH)</div>
+                            <canvas id="tuningChartL"></canvas>
+                        </div>
+
+                        <!-- Top-right: Quality Factor -->
+                        <div class="tuning-plot-card">
+                            <div class="tuning-plot-title">Quality Factor (Q)</div>
+                            <canvas id="tuningChartQ"></canvas>
+                        </div>
+
+                        <!-- Bottom-left: Resistance -->
+                        <div class="tuning-plot-card">
+                            <div class="tuning-plot-title">Resistance (Ω)</div>
+                            <canvas id="tuningChartR"></canvas>
+                        </div>
+
+                        <!-- Bottom-right: Empty -->
+                        <div class="tuning-plot-empty">
+                            <!-- Intentionally empty -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="tuning-modal-footer">
+                <button class="btn-secondary" onclick="closeManualTuning()">Close</button>
+                <button class="btn-primary" id="saveTunedBtn" onclick="saveTunedSolution()"><span>✓</span> Save as "Solution Tuned"</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js for 3D visualization -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="/static/js/vendor/OrbitControls.js"></script>
+
+    <!-- External JavaScript - Modular API -->
+    <script src="/static/js/spiral.js"></script>
+    <script src="/static/js/spiral3d.js"></script>
+    <script src="/static/js/charts.js"></script>
+    <script src="/static/js/export.js"></script>
+    <script src="/static/js/api/analysis.js"></script>
+    <script src="/static/js/api/synthesis.js"></script>
+    <script src="/static/js/api/design_space.js"></script>
+    <script src="/static/js/api/design_space_click.js"></script>
+    <script src="/static/js/api/solution_display.js"></script>
+    <script src="/static/js/api/manual_tuning.js"></script>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/ui.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
